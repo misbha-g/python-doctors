@@ -1,49 +1,43 @@
 pipeline {
-  environment {
-    dockerimagename = "devteam18/doctors-app"
-    dockerImage = ""
-  }
+    agent any
 
-  agent any
-
-  stages {
-
-    stage('Checkout Source') {
-      steps {
-        git branch: 'master',
-        credentialsId: 'github-credentials',
-        url: 'https://github.com/misbha-g/python-doctors.git'
-      }
+    environment {
+        DOCKER_REGISTRY_CREDENTIALS = credentials('dockerhub-credentials')
     }
 
-    stage('Build image') {
-      steps {
-        script {
-          dockerImage = docker.build doctors-app
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
         }
-      }
-    }
 
-    stage('Pushing Image') {
-      environment {
-        registryCredential = 'dockerhub-credentials'
-      }
-      steps {
-        script {
-          docker.withRegistry('https://registry.hub.docker.com', registryCredential) {
-            dockerImage.push("latest")
-          }
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    dockerImage = docker.build("devteam18/doctors-app")
+                    dockerImage.push()
+                }
+            }
         }
-      }
-    }
 
-    stage('Deploying Doctor container to Kubernetes') {
-      steps {
-        script {
-          kubernetesDeploy(configs: "deployment.yaml")
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    withKubeConfig() {
+                        sh "kubectl apply -f deployment.yaml"
+                    }
+                }
+            }
         }
-      }
     }
 
-  }
+    post {
+        success {
+            echo "Deployment succeeded."
+        }
+        failure {
+            echo "Deployment failed."
+        }
+    }
 }
