@@ -1,4 +1,5 @@
 pipeline {
+
   environment {
     dockerimagename = "devteam18/doctors-app"
     dockerImage = ""
@@ -10,34 +11,32 @@ pipeline {
 
     stage('Checkout Source') {
       steps {
-        git branch: 'master',
-        credentialsId: 'github-credentials',
-        url: 'https://github.com/misbha-g/python-doctors.git'
+        git 'https://github.com/misbha-g/python-doctors.git'
       }
     }
 
     stage('Build image') {
-      steps {
+      steps{
         script {
-          dockerImage = docker.build doctors-app
+          dockerImage = docker.build dockerimagename
         }
       }
     }
 
     stage('Pushing Image') {
       environment {
-        registryCredential = 'dockerhub-credentials'
-      }
-      steps {
+               registryCredential = 'dockerhub-credentials'
+           }
+      steps{
         script {
-          docker.withRegistry('https://registry.hub.docker.com', registryCredential) {
+          docker.withRegistry( 'https://registry.hub.docker.com', registryCredential ) {
             dockerImage.push("latest")
           }
         }
       }
     }
 
-    stage('Deploying Doctor container to Kubernetes') {
+    stage('Deploying App to Kubernetes') {
       steps {
         script {
           kubernetesDeploy(configs: "deployment.yaml")
@@ -46,4 +45,5 @@ pipeline {
     }
 
   }
+
 }
