@@ -16,20 +16,17 @@ pipeline {
     }
 
     stage('Build image') {
-      steps{
+      steps {
         script {
-          dockerImage = docker.build dockerimagename
+            dockerImage = docker.build("devteam18/doctors-app")
         }
-      }
+    }
     }
 
     stage('Pushing Image') {
-      environment {
-               registryCredential = 'dockerhub-credentials'
-           }
       steps{
         script {
-          docker.withRegistry( 'https://registry.hub.docker.com', registryCredential ) {
+          docker.withRegistry('https://registry.hub.docker.com', 'dockerhub-credentials') {
             dockerImage.push("latest")
           }
         }
@@ -45,5 +42,13 @@ pipeline {
     }
 
   }
+  post {
+        success {
+            echo "Deployment succeeded."
+        }
+        failure {
+            echo "Deployment failed."
+        }
+    }
 
 }
